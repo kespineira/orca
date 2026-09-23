@@ -16,11 +16,12 @@ export function resolveOpenCodeGoApiKeys(setting?: string): OpenCodeGoApiKey[] {
   }
   const candidates: OpenCodeGoApiKey[] = []
   const environmentKey = process.env.OPENCODE_API_KEY?.trim()
-  if (environmentKey) {
+  const authFileKey = readOpenCodeGoAuthFileKey()
+  // Why: an equal key is sent once, but as the Go-specific auth-file source so a 403 stays visible.
+  if (environmentKey && environmentKey !== authFileKey?.key) {
     candidates.push({ source: 'environment', key: environmentKey })
   }
-  const authFileKey = readOpenCodeGoAuthFileKey()
-  if (authFileKey && authFileKey.key !== environmentKey) {
+  if (authFileKey) {
     candidates.push(authFileKey)
   }
   return candidates

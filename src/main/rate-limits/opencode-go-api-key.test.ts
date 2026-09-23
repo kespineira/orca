@@ -54,10 +54,10 @@ describe('OpenCode Go API key sources', () => {
     expect(resolveOpenCodeGoApiKeys()[0]?.key).toBe('fake-home')
   })
 
-  it('does not retry an auth-file key that matches the environment key', () => {
+  it('keeps the auth-file source once when it matches the environment key', () => {
     vi.stubEnv('OPENCODE_API_KEY', 'fake-same')
     writeAuth({ 'opencode-go': { type: 'api', key: ' fake-same ' } })
-    expect(resolveOpenCodeGoApiKeys()).toEqual([{ source: 'environment', key: 'fake-same' }])
+    expect(resolveOpenCodeGoApiKeys()).toEqual([{ source: 'auth-file', key: 'fake-same' }])
   })
 
   it('changes the config hash when either environment or auth-file key changes', () => {
