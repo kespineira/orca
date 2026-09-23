@@ -128,11 +128,10 @@ export function initializeMainProcessAccountServices(): void {
   state.rateLimits.setOpenCodeGoConfigResolver(() => {
     const settings = store.getSettings()
     return {
-      apiKey: readOpenCodeGoApiKey() ?? '',
       sessionCookie: settings.opencodeSessionCookie,
       workspaceIdOverride: settings.opencodeWorkspaceId
     }
-  })
+  }, readOpenCodeGoApiKey)
   state.rateLimits.setMiniMaxConfigResolver(() => {
     const settings = store.getSettings()
     const apiKey = readMiniMaxApiKey() ?? ''

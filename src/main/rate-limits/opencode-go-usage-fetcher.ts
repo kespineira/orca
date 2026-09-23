@@ -82,13 +82,20 @@ export async function fetchOpenCodeGoRateLimits(
   cookie: string,
   workspaceIdOverride?: string,
   networkProxySettings?: NetworkProxySettings,
-  apiKey?: string,
-  apiKeySource?: OpenCodeGoApiKey['source']
+  apiKeys: readonly OpenCodeGoApiKey[] = []
 ): Promise<OpenCodeGoUsageResult> {
+  const [apiKey, authFileKey] = apiKeys
   if (!apiKey) {
     return fetchOpenCodeGoCookieRateLimits(cookie, workspaceIdOverride, networkProxySettings)
   }
-  const result = await fetchOpenCodeGoApiUsage(apiKey, networkProxySettings, apiKeySource)
+  let result = await fetchOpenCodeGoApiUsage(apiKey.key, networkProxySettings, apiKey.source)
+  if (result.status === 'unavailable' && authFileKey) {
+    result = await fetchOpenCodeGoApiUsage(
+      authFileKey.key,
+      networkProxySettings,
+      authFileKey.source
+    )
+  }
   const apiKeyConfigured = result.status !== 'unavailable'
   if (result.status === 'ok' || !cookie.trim()) {
     return { ...result, apiKeyConfigured }

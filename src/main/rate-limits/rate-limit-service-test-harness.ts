@@ -18,7 +18,7 @@ import * as OpenCodeGoApiKeyModule from './opencode-go-api-key'
 
 vi.mock('./opencode-go-api-key', async (importOriginal) => ({
   ...(await importOriginal<typeof OpenCodeGoApiKeyModule>()),
-  resolveOpenCodeGoApiKey: vi.fn(() => null)
+  resolveOpenCodeGoApiKeys: vi.fn(() => [])
 }))
 
 const inheritedOpenCodeApiKey = process.env.OPENCODE_API_KEY?.trim()
@@ -28,7 +28,7 @@ afterEach(() => {
     expect(
       vi
         .mocked(fetchOpenCodeGoRateLimits)
-        .mock.calls.some((call) => call[3] === inheritedOpenCodeApiKey)
+        .mock.calls.some((call) => call[3]?.some(({ key }) => key === inheritedOpenCodeApiKey))
     ).toBe(false)
   }
 })
@@ -116,7 +116,7 @@ export function mockFreshBackgroundProviderFetches(): void {
 /** Shared `beforeEach` body: healthy stubs for every provider the service polls. */
 export function resetRateLimitProviderMocks(): void {
   vi.clearAllMocks()
-  vi.mocked(OpenCodeGoApiKeyModule.resolveOpenCodeGoApiKey).mockReturnValue(null)
+  vi.mocked(OpenCodeGoApiKeyModule.resolveOpenCodeGoApiKeys).mockReturnValue([])
   vi.mocked(fetchGeminiRateLimits).mockResolvedValue(okProvider('gemini', 0, Date.now()))
   vi.mocked(fetchOpenCodeGoRateLimits).mockResolvedValue(okProvider('opencode-go', 0, Date.now()))
   vi.mocked(fetchKimiRateLimits).mockResolvedValue(okProvider('kimi', 0, Date.now()))

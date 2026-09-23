@@ -195,16 +195,18 @@ export abstract class RateLimitServiceFetchTargets extends RateLimitServiceResul
   }
 
   protected resolveOpenCodeGoConfig(): { config: OpenCodeGoRateLimitConfig; error: string | null } {
+    let config: OpenCodeGoRateLimitConfig = { sessionCookie: '', workspaceIdOverride: '' }
     try {
+      config = this.openCodeGoConfigResolver?.() ?? config
       return {
-        config: this.openCodeGoConfigResolver?.() ?? { sessionCookie: '', workspaceIdOverride: '' },
+        config: { ...config, apiKey: this.openCodeGoApiKeyResolver?.() ?? config.apiKey },
         error: null
       }
     } catch {
       // Why: an unreadable key must not abort other providers or expose credential errors.
       return {
-        config: { sessionCookie: '', workspaceIdOverride: '' },
-        error: 'OpenCode Go API key could not be decrypted'
+        config: { ...config, apiKey: undefined },
+        error: 'OpenCode Go API key could not be decrypted. Re-enter or clear the key in Settings.'
       }
     }
   }

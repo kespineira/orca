@@ -54,11 +54,40 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs())
 
 describe('OpenCode Go API usage', () => {
+  it.each([200, 403])(
+    'tries an auth-file key after an env 403, with auth-file HTTP %i',
+    async (status) => {
+      mocks.fetch
+        .mockResolvedValueOnce(response({}, 403))
+        .mockResolvedValueOnce(response(usage, status))
+      const result = await fetchOpenCodeGoRateLimits('', undefined, undefined, [
+        { key: 'fake-env-key', source: 'environment' },
+        { key: 'fake-auth-file-key', source: 'auth-file' }
+      ])
+      expect(mocks.fetch).toHaveBeenCalledTimes(2)
+      expect(mocks.fetch.mock.calls[1]?.[1].headers.Authorization).toBe('Bearer fake-auth-file-key')
+      expect(result.apiKeyConfigured).toBe(true)
+      expect(result.status).toBe(status === 200 ? 'ok' : 'error')
+      expect(result.session?.usedPercent ?? null).toBe(status === 200 ? 25 : null)
+    }
+  )
+
+  it.each([200, 401, 503])('does not try the auth-file key after env HTTP %i', async (status) => {
+    mocks.fetch.mockResolvedValue(response(usage, status))
+    await fetchOpenCodeGoRateLimits('', undefined, undefined, [
+      { key: 'fake-env-key', source: 'environment' },
+      { key: 'fake-auth-file-key', source: 'auth-file' }
+    ])
+    expect(mocks.fetch).toHaveBeenCalledTimes(1)
+  })
+
   it.each(['environment', 'setting', 'auth-file'] as const)(
     'treats a 403 from %s according to its Go-specific configuration',
     async (source) => {
       mocks.fetch.mockResolvedValue(response({ error: { name: 'EntitlementError' } }, 403))
-      const result = await fetchOpenCodeGoRateLimits('', undefined, undefined, fakeKey, source)
+      const result = await fetchOpenCodeGoRateLimits('', undefined, undefined, [
+        { key: fakeKey, source }
+      ])
       expect(result.status).toBe(source === 'environment' ? 'unavailable' : 'error')
       expect(result.apiKeyConfigured).toBe(source !== 'environment')
       expect(result.session).toBeNull()
@@ -71,13 +100,9 @@ describe('OpenCode Go API usage', () => {
       mocks.fetch
         .mockResolvedValueOnce(response({}, 403))
         .mockResolvedValueOnce(response(cookieUsage, status))
-      const result = await fetchOpenCodeGoRateLimits(
-        'auth=fake-cookie',
-        'wrk_legacy',
-        undefined,
-        fakeKey,
-        'environment'
-      )
+      const result = await fetchOpenCodeGoRateLimits('auth=fake-cookie', 'wrk_legacy', undefined, [
+        { key: fakeKey, source: 'environment' }
+      ])
       expect(mocks.fetch).toHaveBeenCalledTimes(2)
       expect(mocks.fetch.mock.calls[1]?.[0]).toBe('https://opencode.ai/console/api/go/status')
       expect(result.apiKeyConfigured).toBe(false)
@@ -87,12 +112,9 @@ describe('OpenCode Go API usage', () => {
 
   it('uses bearer auth without cookies or workspace discovery and clamps all usage windows', async () => {
     mocks.fetch.mockResolvedValue(response(usage))
-    const result = await fetchOpenCodeGoRateLimits(
-      'auth=fake-cookie',
-      'wrk_unused',
-      undefined,
-      fakeKey
-    )
+    const result = await fetchOpenCodeGoRateLimits('auth=fake-cookie', 'wrk_unused', undefined, [
+      { key: fakeKey, source: 'setting' }
+    ])
     expect(mocks.fetch).toHaveBeenCalledExactlyOnceWith(
       'https://opencode.ai/zen/go/v1/usage',
       expect.objectContaining({
@@ -123,7 +145,9 @@ describe('OpenCode Go API usage', () => {
     [503, 'Usage fetch failed (503)']
   ])('maps HTTP %i without echoing response secrets', async (status, error) => {
     mocks.fetch.mockResolvedValue(response({ error: fakeKey }, status))
-    const result = await fetchOpenCodeGoRateLimits('', undefined, undefined, fakeKey)
+    const result = await fetchOpenCodeGoRateLimits('', undefined, undefined, [
+      { key: fakeKey, source: 'setting' }
+    ])
     expect(result.error).toBe(error)
     expect(JSON.stringify(result)).not.toContain(fakeKey)
     expect(mocks.fetch).toHaveBeenCalledTimes(1)
@@ -133,12 +157,9 @@ describe('OpenCode Go API usage', () => {
     mocks.fetch
       .mockResolvedValueOnce(response({}, status))
       .mockResolvedValueOnce(response(cookieUsage))
-    const result = await fetchOpenCodeGoRateLimits(
-      'auth=fake-cookie',
-      'wrk_legacy',
-      undefined,
-      fakeKey
-    )
+    const result = await fetchOpenCodeGoRateLimits('auth=fake-cookie', 'wrk_legacy', undefined, [
+      { key: fakeKey, source: 'setting' }
+    ])
     expect(result.status).toBe('ok')
     expect(result.session?.usedPercent).toBe(10)
     expect(mocks.setCookie).toHaveBeenCalledWith(expect.objectContaining({ value: 'fake-cookie' }))
@@ -147,12 +168,9 @@ describe('OpenCode Go API usage', () => {
 
   it('retains the actionable key error when the cookie also fails', async () => {
     mocks.fetch.mockResolvedValueOnce(response({}, 401)).mockResolvedValueOnce(response({}, 403))
-    const result = await fetchOpenCodeGoRateLimits(
-      'auth=fake-cookie',
-      'wrk_legacy',
-      undefined,
-      fakeKey
-    )
+    const result = await fetchOpenCodeGoRateLimits('auth=fake-cookie', 'wrk_legacy', undefined, [
+      { key: fakeKey, source: 'setting' }
+    ])
     expect(result.error).toContain('/connect')
     expect(mocks.fetch).toHaveBeenCalledTimes(2)
   })
@@ -169,7 +187,7 @@ describe('OpenCode Go API usage', () => {
       '',
       undefined,
       { httpProxyUrl: 'http://proxy.example:8080', httpProxyBypassRules: 'localhost' },
-      fakeKey
+      [{ key: fakeKey, source: 'setting' }]
     )
     expect(mocks.proxy).toHaveBeenCalledWith({
       mode: 'fixed_servers',
@@ -181,7 +199,7 @@ describe('OpenCode Go API usage', () => {
   it('bridges environment proxies for API requests', async () => {
     vi.stubEnv('HTTPS_PROXY', 'http://env-proxy.example:8080')
     mocks.fetch.mockResolvedValue(response(usage))
-    await fetchOpenCodeGoRateLimits('', undefined, undefined, fakeKey)
+    await fetchOpenCodeGoRateLimits('', undefined, undefined, [{ key: fakeKey, source: 'setting' }])
     expect(mocks.proxy).toHaveBeenCalledWith(
       expect.objectContaining({ proxyRules: 'http://env-proxy.example:8080' })
     )
@@ -189,7 +207,9 @@ describe('OpenCode Go API usage', () => {
 
   it('does not expose transport errors that contain the key', async () => {
     mocks.fetch.mockRejectedValue(new Error(`Authorization: Bearer ${fakeKey}`))
-    const result = await fetchOpenCodeGoRateLimits('', undefined, undefined, fakeKey)
+    const result = await fetchOpenCodeGoRateLimits('', undefined, undefined, [
+      { key: fakeKey, source: 'setting' }
+    ])
     expect(result.status).toBe('error')
     expect(result.error).toContain('connection and proxy')
     expect(JSON.stringify(result)).not.toContain(fakeKey)

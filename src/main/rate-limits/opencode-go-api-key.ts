@@ -10,14 +10,23 @@ export type OpenCodeGoApiKey = {
   key: string
 }
 
-export function resolveOpenCodeGoApiKey(setting?: string): OpenCodeGoApiKey | null {
+export function resolveOpenCodeGoApiKeys(setting?: string): OpenCodeGoApiKey[] {
   if (setting?.trim()) {
-    return { source: 'setting', key: setting.trim() }
+    return [{ source: 'setting', key: setting.trim() }]
   }
+  const candidates: OpenCodeGoApiKey[] = []
   const environmentKey = process.env.OPENCODE_API_KEY?.trim()
   if (environmentKey) {
-    return { source: 'environment', key: environmentKey }
+    candidates.push({ source: 'environment', key: environmentKey })
   }
+  const authFileKey = readOpenCodeGoAuthFileKey()
+  if (authFileKey && authFileKey.key !== environmentKey) {
+    candidates.push(authFileKey)
+  }
+  return candidates
+}
+
+function readOpenCodeGoAuthFileKey(): OpenCodeGoApiKey | null {
   try {
     // Why: OpenCode uses xdg-basedir on every OS, including Windows.
     const dataHome = process.env.XDG_DATA_HOME || join(homedir(), '.local', 'share')
@@ -48,11 +57,11 @@ export function resolveOpenCodeGoApiKey(setting?: string): OpenCodeGoApiKey | nu
 }
 
 export function getOpenCodeGoConfigHash(
-  apiKey: OpenCodeGoApiKey | null,
+  apiKeys: readonly OpenCodeGoApiKey[],
   cookie: string,
   workspaceId: string
 ): string {
   return createHash('sha256')
-    .update(JSON.stringify([apiKey?.source, apiKey?.key, cookie, workspaceId]))
+    .update(JSON.stringify([apiKeys, cookie, workspaceId]))
     .digest('hex')
 }
