@@ -1,6 +1,7 @@
 import { getSecretStore } from '../shared/secret-store'
 
 export const PROTECTED_SECRET_SLOT = {
+  opencodeGoApiKey: 'settings.opencodeGoApiKey',
   opencodeSessionCookie: 'settings.opencodeSessionCookie',
   httpProxyUrl: 'settings.httpProxyUrl',
   browserKagiSessionLink: 'ui.browserKagiSessionLink'

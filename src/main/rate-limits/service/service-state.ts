@@ -33,6 +33,7 @@ export abstract class RateLimitServiceState {
     minimax: null,
     grok: null
   }
+  protected opencodeGoApiKeyConfigured = false
   protected grokAuthConfigured = readGrokAuthSession().status === 'ok'
   protected pollInterval: number = DEFAULT_POLL_MS
   protected timer: ReturnType<typeof setInterval> | null = null

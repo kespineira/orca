@@ -40,6 +40,20 @@
         "title": "メニューバーアイコンを表示",
         "description": "macOS メニューバーに Orca のショートカットとアクティビティインジケーターを表示します。"
       }
+    },
+    "accounts": {
+      "openCodeGo": {
+        "apiKeyTitle": "OpenCode Go APIキー",
+        "apiKeyLabel": "APIキー",
+        "apiKeyHelp": "Orcaは、このコンピューターのOpenCodeで /connect により保存されたAPIキーを自動検出します。上書きするには、ここにキーを貼り付けてください。",
+        "apiKeyPlaceholder": "空欄で自動検出",
+        "apiKeyKeyword": "APIキー",
+        "cookieTitle": "OpenCode Goの旧セッションCookie",
+        "cookieLabel": "旧セッションCookie",
+        "cookieHelp": "Blackアカウントと旧アカウント用の代替手段です。ブラウザーの開発者ツールでopencode.aiのCookieヘッダー全体をコピーし、__Host-console_session を含めて貼り付けてください。",
+        "workspaceHelp": "ワークスペースの自動検索が失敗した際のCookie認証でのみ使用します。旧コンソールのURLからワークスペースIDを確認してください。APIキーには不要です。",
+        "connectKeyword": "接続"
+      }
     }
   },
   "menu": {

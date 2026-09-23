@@ -1,13 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ProviderRateLimits } from '../../shared/rate-limit-types'
-import { RateLimitService } from './service'
-import { fetchClaudeRateLimits } from './claude-fetcher'
-import { fetchCodexRateLimits } from './codex-fetcher'
-import { fetchGeminiRateLimits } from './gemini-usage-fetcher'
-import { fetchKimiRateLimits } from './kimi-fetcher'
-import { fetchMiniMaxRateLimits } from './minimax/minimax-fetcher'
-import { fetchGrokRateLimits } from './grok-fetcher'
-import { fetchOpenCodeGoRateLimits } from './opencode-go-usage-fetcher'
 import {
   asRateLimitWindow,
   deferred,
@@ -18,6 +8,16 @@ import {
   resetRateLimitProviderMocks,
   unavailableProvider
 } from './rate-limit-service-test-harness'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ProviderRateLimits } from '../../shared/rate-limit-types'
+import { RateLimitService } from './service'
+import { fetchClaudeRateLimits } from './claude-fetcher'
+import { fetchCodexRateLimits } from './codex-fetcher'
+import { fetchGeminiRateLimits } from './gemini-usage-fetcher'
+import { fetchKimiRateLimits } from './kimi-fetcher'
+import { fetchMiniMaxRateLimits } from './minimax/minimax-fetcher'
+import { fetchGrokRateLimits } from './grok-fetcher'
+import { fetchOpenCodeGoRateLimits } from './opencode-go-usage-fetcher'
 
 vi.mock('./claude-fetcher', () => ({
   fetchClaudeRateLimits: vi.fn(),

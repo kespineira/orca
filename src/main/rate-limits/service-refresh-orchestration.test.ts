@@ -1,3 +1,11 @@
+import {
+  deferred,
+  errorProvider,
+  flushMicrotasks,
+  mockFreshBackgroundProviderFetches,
+  okProvider,
+  resetRateLimitProviderMocks
+} from './rate-limit-service-test-harness'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProviderRateLimits } from '../../shared/rate-limit-types'
 import { RateLimitService } from './service'
@@ -9,14 +17,6 @@ import { fetchMiniMaxRateLimits } from './minimax/minimax-fetcher'
 import { fetchGrokRateLimits } from './grok-fetcher'
 import { readGrokAuthSession } from './grok-auth'
 import { fetchOpenCodeGoRateLimits } from './opencode-go-usage-fetcher'
-import {
-  deferred,
-  errorProvider,
-  flushMicrotasks,
-  mockFreshBackgroundProviderFetches,
-  okProvider,
-  resetRateLimitProviderMocks
-} from './rate-limit-service-test-harness'
 
 vi.mock('./claude-fetcher', () => ({
   fetchClaudeRateLimits: vi.fn(),
@@ -399,7 +399,8 @@ describe('RateLimitService', () => {
     expect(fetchOpenCodeGoRateLimits).toHaveBeenCalledWith(
       'session=abc123',
       undefined,
-      networkProxySettings
+      networkProxySettings,
+      undefined
     )
     expect(fetchGrokRateLimits).toHaveBeenCalledWith({
       signal: expect.any(AbortSignal),

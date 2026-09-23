@@ -206,6 +206,20 @@
         "restartRequired": "Restart required",
         "unavailable": "Browser identity is unavailable."
       }
+    },
+    "accounts": {
+      "openCodeGo": {
+        "apiKeyTitle": "OpenCode Go API key",
+        "apiKeyLabel": "API key",
+        "apiKeyHelp": "Orca auto-detects the API key saved by /connect in OpenCode on this computer. Paste a key here to override it.",
+        "apiKeyPlaceholder": "Leave blank to auto-detect",
+        "apiKeyKeyword": "api key",
+        "cookieTitle": "OpenCode Go legacy session cookie",
+        "cookieLabel": "Legacy session cookie",
+        "cookieHelp": "Legacy fallback for Black and legacy accounts. Paste the full Cookie header from opencode.ai browser DevTools, including __Host-console_session.",
+        "workspaceHelp": "Only used by the cookie fallback when automatic workspace lookup fails. Find the workspace ID in the legacy console URL. API keys do not need it.",
+        "connectKeyword": "connect"
+      }
     }
   },
   "menu": {

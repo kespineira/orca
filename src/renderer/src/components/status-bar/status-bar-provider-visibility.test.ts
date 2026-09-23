@@ -81,6 +81,24 @@ function usageSettings(overrides: Partial<UsageProviderSettings> = {}): UsagePro
 }
 
 describe('hasUsageProviderSettings', () => {
+  it.each([
+    { opencodeGoApiKey: 'fake-override' },
+    { opencodeGoApiKeyConfigured: true },
+    { opencodeSessionCookie: 'auth=fake-cookie' }
+  ])('keeps OpenCode visible for any credential source %j', (settings) => {
+    const configured = usageSettings(settings)
+    expect(hasUsageProviderSettings(configured)).toBe(true)
+    expect(hasUsageProviderSettingsForProvider('opencode-go', configured)).toBe(true)
+    expect(getVisibleUsageProvider('opencode-go', null, configured)?.status).toBe('fetching')
+  })
+
+  it('handles absent configured flags from older main processes', () => {
+    expect(hasUsageProviderSettingsForProvider('opencode-go', usageSettings())).toBe(false)
+    expect(
+      hasUsageProviderSettingsForProvider('opencode-go', usageSettings({ opencodeGoApiKey: ' ' }))
+    ).toBe(false)
+  })
+
   it('treats persisted managed accounts as configured usage providers', () => {
     expect(
       hasUsageProviderSettings(

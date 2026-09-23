@@ -42,6 +42,7 @@ export type ClaudeAuthPreparationResolver = (
 ) => Promise<ClaudeRuntimeAuthPreparation>
 
 export type OpenCodeGoRateLimitConfig = {
+  apiKey?: string
   sessionCookie: string
   workspaceIdOverride: string
 }

@@ -124,6 +124,10 @@ export class StateSerializationSecretHandlingOperations {
       ),
       settings: {
         ...stripRetiredGlobalSettings(this.runtime.state.settings),
+        opencodeGoApiKey: encryptToSentinel(
+          PROTECTED_SECRET_SLOT.opencodeGoApiKey,
+          this.runtime.state.settings.opencodeGoApiKey ?? ''
+        ),
         opencodeSessionCookie: encryptToSentinel(
           PROTECTED_SECRET_SLOT.opencodeSessionCookie,
           this.runtime.state.settings.opencodeSessionCookie

@@ -78,7 +78,7 @@ describe('persisted state survives a save/load round trip', () => {
     )
     const written = openStore(dataFile)
     written.updateSettings({
-      // Three secret slots, i.e. three sentinels in one save — the case the old loop paid 7 copies for.
+      opencodeGoApiKey: 'oc_sk_fake-key',
       opencodeSessionCookie: 'cookie-é-value',
       httpProxyUrl: 'http://proxy.example:8080/?a=b&c=$&'
     })
@@ -97,6 +97,8 @@ describe('persisted state survives a save/load round trip', () => {
     // The file is valid UTF-8 JSON and holds ciphertext, not the plaintext secrets.
     const bytes = readFileSync(dataFile)
     const onDisk = JSON.parse(bytes.toString('utf8'))
+    expect(bytes.toString('utf8')).not.toContain('oc_sk_fake-key')
+    expect(onDisk.settings.opencodeGoApiKey).toBeTruthy()
     expect(onDisk.settings.opencodeSessionCookie).not.toBe('cookie-é-value')
     expect(Buffer.from(onDisk.settings.opencodeSessionCookie, 'base64').toString('utf8')).toContain(
       'cookie-é-value'
@@ -104,6 +106,7 @@ describe('persisted state survives a save/load round trip', () => {
     expect(bytes.toString('utf8')).not.toContain('orca-secret-slot-')
 
     const reloaded = openStore(dataFile)
+    expect(reloaded.getSettings().opencodeGoApiKey).toBe(before.settings.opencodeGoApiKey)
     expect(reloaded.getSettings().opencodeSessionCookie).toBe(before.settings.opencodeSessionCookie)
     expect(reloaded.getSettings().httpProxyUrl).toBe(before.settings.httpProxyUrl)
     expect(reloaded.getUI().browserKagiSessionLink).toBe(before.ui.browserKagiSessionLink)

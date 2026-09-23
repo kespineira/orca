@@ -78,7 +78,9 @@ export function AccountsPane({
   const recordFeatureInteraction = useAppStore((s) => s.recordFeatureInteraction)
   const fetchSettings = useAppStore((s) => s.fetchSettings)
   const runtimeEnvironments = useAppStore((s) => s.runtimeEnvironments)
-  const recordedOpenCodeSettingEditsRef = useRef<Set<'cookie' | 'workspaceId'>>(new Set())
+  const recordedOpenCodeSettingEditsRef = useRef<Set<'apiKey' | 'cookie' | 'workspaceId'>>(
+    new Set()
+  )
   const [miniMaxCookieDraft, setMiniMaxCookieDraft] = useState('')
   const [miniMaxApiKeyDraft, setMiniMaxApiKeyDraft] = useState('')
   const [miniMaxApiKeyConfigured, setMiniMaxApiKeyConfigured] = useState(false)
@@ -214,7 +216,7 @@ export function AccountsPane({
   const accountRuntimeUnavailable =
     accountRuntime.runtime === 'wsl' && !wslAvailable && !wslCapabilitiesLoading
 
-  const recordOpenCodeSettingEdit = (field: 'cookie' | 'workspaceId'): void => {
+  const recordOpenCodeSettingEdit = (field: 'apiKey' | 'cookie' | 'workspaceId'): void => {
     if (recordedOpenCodeSettingEditsRef.current.has(field)) {
       return
     }

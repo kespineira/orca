@@ -4,6 +4,7 @@ import { fetchGeminiRateLimits } from '../gemini-usage-fetcher'
 import { fetchGrokRateLimits } from '../grok-fetcher'
 import { readGrokAuthSession } from '../grok-auth'
 import { fetchMiniMaxRateLimits } from '../minimax/minimax-fetcher'
+import { resolveOpenCodeGoApiKey, getOpenCodeGoConfigHash } from '../opencode-go-api-key'
 import { fetchOpenCodeGoRateLimits } from '../opencode-go-usage-fetcher'
 import { RateLimitServiceFetchPolicy } from './service-fetch-policy'
 import type {
@@ -74,6 +75,8 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
       : this.getCodexProvenance(codexTarget, codexHomePath)
     const codexGeneration = this.codexFetchGeneration
     const openCodeGoConfig = this.openCodeGoConfigResolver?.()
+    const apiKey = resolveOpenCodeGoApiKey(openCodeGoConfig?.apiKey)
+    this.opencodeGoApiKeyConfigured = apiKey !== null
     const cookie = openCodeGoConfig?.sessionCookie ?? ''
     const workspaceIdOverride = openCodeGoConfig?.workspaceIdOverride ?? ''
     const miniMaxConfigResult = this.resolveMiniMaxConfig()
@@ -88,7 +91,7 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
     this.grokAuthConfigured = grokAuthReadResult.status === 'ok'
 
     // Discard stale data on config change — it belongs to a different session/workspace.
-    const currentConfigHash = `${cookie}|${workspaceIdOverride}`
+    const currentConfigHash = getOpenCodeGoConfigHash(apiKey, cookie, workspaceIdOverride)
     const opencodeConfigChanged = currentConfigHash !== this.lastOpencodeConfigHash
     if (opencodeConfigChanged) {
       this.lastOpencodeConfigHash = currentConfigHash
@@ -161,7 +164,8 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
         fetchOpenCodeGoRateLimits(
           cookie,
           workspaceIdOverride || undefined,
-          this.networkProxySettingsResolver?.()
+          this.networkProxySettingsResolver?.(),
+          apiKey?.key
         ),
         this.fetchKimiWithResolvedHome(),
         miniMaxConfigResult.error

@@ -118,6 +118,7 @@ export function initializeMainProcessAccountServices(): void {
   state.rateLimits.setOpenCodeGoConfigResolver(() => {
     const settings = store.getSettings()
     return {
+      apiKey: settings.opencodeGoApiKey,
       sessionCookie: settings.opencodeSessionCookie,
       workspaceIdOverride: settings.opencodeWorkspaceId
     }

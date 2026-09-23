@@ -173,7 +173,12 @@ describe('AccountsPane', () => {
 
     expect(markup).toContain('__Host-console_session')
     expect(markup).toContain('auth=…; __Host-console_session=…')
-    expect(markup).toContain('auth cookie still covers workspace discovery')
+    expect(markup).toContain('Legacy fallback for Black and legacy accounts')
+    expect(markup).toContain('Orca auto-detects the API key saved by /connect')
+    expect(markup).toContain('id="opencode-go-api-key"')
+    expect(markup.indexOf('id="opencode-go-api-key"')).toBeLessThan(
+      markup.indexOf('Legacy session cookie')
+    )
     expect(markup).not.toContain('Fe26.2**… token or auth=Fe26.2**… header')
   })
 })

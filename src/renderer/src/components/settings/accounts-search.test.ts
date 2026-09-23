@@ -48,9 +48,18 @@ describe('getAccountsMiniMaxSearchEntries', () => {
 })
 
 describe('getAccountsOpencodeSearchEntries', () => {
+  it('makes the API key override discoverable and explains auto-detection', () => {
+    const entry = getAccountsOpencodeSearchEntries().find(
+      (entry) => entry.title === 'OpenCode Go API key'
+    )
+    expect(entry?.keywords).toContain('api key')
+    expect(entry?.description).toContain('/connect')
+    expect(entry?.description).toContain('override')
+  })
+
   it('tells search to paste the full Cookie header including the console session', () => {
     const cookieEntry = getAccountsOpencodeSearchEntries().find(
-      (entry) => entry.title === 'OpenCode Go Session Cookie'
+      (entry) => entry.title === 'OpenCode Go legacy session cookie'
     )
 
     expect(cookieEntry).toBeDefined()

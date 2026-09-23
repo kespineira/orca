@@ -40,6 +40,20 @@
         "title": "显示菜单栏图标",
         "description": "在 macOS 菜单栏中保留 Orca 快捷方式和活动指示器。"
       }
+    },
+    "accounts": {
+      "openCodeGo": {
+        "apiKeyTitle": "OpenCode Go API 密钥",
+        "apiKeyLabel": "API 密钥",
+        "apiKeyHelp": "Orca 会自动检测此计算机上通过 OpenCode 的 /connect 保存的 API 密钥。在此粘贴密钥可覆盖自动检测结果。",
+        "apiKeyPlaceholder": "留空以自动检测",
+        "apiKeyKeyword": "API 密钥",
+        "cookieTitle": "OpenCode Go 旧版会话 Cookie",
+        "cookieLabel": "旧版会话 Cookie",
+        "cookieHelp": "适用于 Black 和旧版账户的备用方式。从浏览器开发者工具中粘贴 opencode.ai 的完整 Cookie 请求头，包括 __Host-console_session。",
+        "workspaceHelp": "仅在自动查找工作区失败时用于 Cookie 认证。可在旧版控制台 URL 中找到工作区 ID。API 密钥无需此项。",
+        "connectKeyword": "连接"
+      }
     }
   },
   "menu": {

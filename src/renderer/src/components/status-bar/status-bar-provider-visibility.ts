@@ -6,6 +6,7 @@ export type UsageProviderSettings = Pick<
   | 'codexManagedAccounts'
   | 'claudeManagedAccounts'
   | 'opencodeSessionCookie'
+  | 'opencodeGoApiKey'
   | 'geminiCliOAuthEnabled'
 > & {
   // Why: Antigravity has no separate persisted usage credential in Orca. The
@@ -17,6 +18,7 @@ export type UsageProviderSettings = Pick<
   // Why: MiniMax/Grok sign-in live on disk, not in settings; main sets these each poll.
   minimaxCookieConfigured: boolean
   minimaxApiKeyConfigured: boolean
+  opencodeGoApiKeyConfigured?: boolean
   grokAuthConfigured: boolean
 }
 
@@ -74,7 +76,7 @@ export function hasUsageProviderSettings(
     (settings?.codexManagedAccounts?.length ?? 0) > 0 ||
     (settings?.claudeManagedAccounts?.length ?? 0) > 0 ||
     settings?.geminiCliOAuthEnabled === true ||
-    Boolean(settings?.opencodeSessionCookie?.trim()) ||
+    hasUsageProviderSettingsForProvider('opencode-go', settings) ||
     // Antigravity's durable signal requires geminiCliOAuthEnabled, so it is
     // already covered by the gemini term above.
     settings?.minimaxCookieConfigured === true ||
@@ -100,7 +102,10 @@ export function hasUsageProviderSettingsForProvider(
     return settings.geminiCliOAuthEnabled === true
   }
   if (providerId === 'opencode-go') {
-    return Boolean(settings.opencodeSessionCookie?.trim())
+    return (
+      Boolean(settings.opencodeSessionCookie?.trim() || settings.opencodeGoApiKey?.trim()) ||
+      settings.opencodeGoApiKeyConfigured === true
+    )
   }
   if (providerId === 'antigravity') {
     // Why: the Antigravity snapshot mirrors the Gemini fetch, which stays

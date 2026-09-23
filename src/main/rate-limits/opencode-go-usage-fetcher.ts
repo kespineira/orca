@@ -8,6 +8,7 @@ import {
   OPENCODE_BASE_URL
 } from './opencode-go-request-session'
 import { parseOpenCodeGoStatusPayload } from './opencode-go-status-parsing'
+import { fetchOpenCodeGoApiUsage } from './opencode-go-api-usage-fetcher'
 
 const OPENCODE_SERVER_URL = 'https://opencode.ai/_server'
 const OPENCODE_GO_STATUS_URL = `${OPENCODE_BASE_URL}/console/api/go/status`
@@ -75,6 +76,27 @@ function parseWorkspaceIds(text: string): string[] {
 }
 
 export async function fetchOpenCodeGoRateLimits(
+  cookie: string,
+  workspaceIdOverride?: string,
+  networkProxySettings?: NetworkProxySettings,
+  apiKey?: string
+): Promise<ProviderRateLimits> {
+  if (!apiKey) {
+    return fetchOpenCodeGoCookieRateLimits(cookie, workspaceIdOverride, networkProxySettings)
+  }
+  const result = await fetchOpenCodeGoApiUsage(apiKey, networkProxySettings)
+  if (result.status === 'ok' || !cookie.trim()) {
+    return result
+  }
+  const fallback = await fetchOpenCodeGoCookieRateLimits(
+    cookie,
+    workspaceIdOverride,
+    networkProxySettings
+  )
+  return fallback.status === 'ok' ? fallback : result
+}
+
+async function fetchOpenCodeGoCookieRateLimits(
   cookie: string,
   workspaceIdOverride?: string,
   networkProxySettings?: NetworkProxySettings

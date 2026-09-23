@@ -138,6 +138,8 @@ export type RateLimitState = {
    * visible across reloads.
    */
   minimaxApiKeyConfigured: boolean
+  /** True when main resolves an OpenCode Go key from settings, environment, or local auth.json. */
+  opencodeGoApiKeyConfigured?: boolean
   /** True when main finds a Grok CLI session file (~/.grok/auth.json or GROK_HOME). */
   grokAuthConfigured: boolean
   claudeTarget: RateLimitRuntimeTarget

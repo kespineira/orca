@@ -1,5 +1,9 @@
+/* oxlint-disable anti-slop/no-module-mocking -- Vitest support module for the RateLimitService specs, not shipped code,
+   and it falls outside the *.test / *.spec / tests glob set. The service resolves the OpenCode Go key from the host's
+   env and auth.json directly, so one shared stub keeps every spec off a developer's real credentials. */
+// Import this setup before the service so credential mocks register first.
 import { EventEmitter } from 'node:events'
-import { vi, type Mock } from 'vitest'
+import { afterEach, expect, vi, type Mock } from 'vitest'
 import type { ProviderRateLimits } from '../../shared/rate-limit-types'
 import type { RateLimitService } from './service'
 import { fetchCodexRateLimits } from './codex-fetcher'
@@ -10,6 +14,24 @@ import { fetchGrokRateLimits } from './grok-fetcher'
 import { readGrokAuthSession } from './grok-auth'
 import { fetchOpenCodeGoRateLimits } from './opencode-go-usage-fetcher'
 import { hasMiniMaxSessionCookie } from '../minimax/minimax-cookie-store'
+import * as OpenCodeGoApiKeyModule from './opencode-go-api-key'
+
+vi.mock('./opencode-go-api-key', async (importOriginal) => ({
+  ...(await importOriginal<typeof OpenCodeGoApiKeyModule>()),
+  resolveOpenCodeGoApiKey: vi.fn(() => null)
+}))
+
+const inheritedOpenCodeApiKey = process.env.OPENCODE_API_KEY?.trim()
+afterEach(() => {
+  if (inheritedOpenCodeApiKey) {
+    // Check a boolean so assertion failures cannot print a developer's key.
+    expect(
+      vi
+        .mocked(fetchOpenCodeGoRateLimits)
+        .mock.calls.some((call) => call[3] === inheritedOpenCodeApiKey)
+    ).toBe(false)
+  }
+})
 
 export type Deferred<T> = {
   promise: Promise<T>
@@ -94,6 +116,7 @@ export function mockFreshBackgroundProviderFetches(): void {
 /** Shared `beforeEach` body: healthy stubs for every provider the service polls. */
 export function resetRateLimitProviderMocks(): void {
   vi.clearAllMocks()
+  vi.mocked(OpenCodeGoApiKeyModule.resolveOpenCodeGoApiKey).mockReturnValue(null)
   vi.mocked(fetchGeminiRateLimits).mockResolvedValue(okProvider('gemini', 0, Date.now()))
   vi.mocked(fetchOpenCodeGoRateLimits).mockResolvedValue(okProvider('opencode-go', 0, Date.now()))
   vi.mocked(fetchKimiRateLimits).mockResolvedValue(okProvider('kimi', 0, Date.now()))

@@ -40,6 +40,20 @@
         "title": "Mostrar icono en la barra de menús",
         "description": "Mantén un acceso directo de Orca e indicador de actividad en la barra de menús de macOS."
       }
+    },
+    "accounts": {
+      "openCodeGo": {
+        "apiKeyTitle": "Clave API de OpenCode Go",
+        "apiKeyLabel": "Clave API",
+        "apiKeyHelp": "Orca detecta automáticamente la clave API guardada por /connect en OpenCode en este equipo. Pega una clave aquí para sustituirla.",
+        "apiKeyPlaceholder": "Dejar en blanco para detectar automáticamente",
+        "apiKeyKeyword": "clave api",
+        "cookieTitle": "Cookie de sesión heredada de OpenCode Go",
+        "cookieLabel": "Cookie de sesión heredada",
+        "cookieHelp": "Alternativa para cuentas Black y antiguas. Pega la cabecera Cookie completa de las herramientas de desarrollo del navegador en opencode.ai, incluida __Host-console_session.",
+        "workspaceHelp": "Solo se usa con la cookie si falla la búsqueda automática del espacio de trabajo. Busca el ID en la URL de la consola antigua. Las claves API no lo necesitan.",
+        "connectKeyword": "conectar"
+      }
     }
   },
   "menu": {

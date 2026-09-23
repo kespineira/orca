@@ -129,13 +129,30 @@ export const getAccountsGeminiSearchEntries = createLocalizedCatalog(() => [
 
 export const getAccountsOpencodeSearchEntries = createLocalizedCatalog(() => [
   {
+    title: translate('settings.accounts.openCodeGo.apiKeyTitle', 'OpenCode Go API key'),
+    description: translate(
+      'settings.accounts.openCodeGo.apiKeyHelp',
+      'Orca auto-detects the API key saved by /connect in OpenCode on this computer. Paste a key here to override it.'
+    ),
+    keywords: [
+      ...translateSearchKeyword('auto.components.settings.accounts.search.8dcbef1856', 'opencode'),
+      ...translateSearchKeyword('settings.accounts.openCodeGo.apiKeyKeyword', 'api key'),
+      ...translateSearchKeyword('settings.accounts.openCodeGo.connectKeyword', 'connect'),
+      ...translateSearchKeyword(
+        'auto.components.settings.accounts.search.e949b08ffb',
+        'rate limit'
+      ),
+      ...translateSearchKeyword('auto.components.settings.accounts.search.86edc96bc9', 'status bar')
+    ]
+  },
+  {
     title: translate(
-      'auto.components.settings.accounts.search.6ed1401020',
-      'OpenCode Go Session Cookie'
+      'settings.accounts.openCodeGo.cookieTitle',
+      'OpenCode Go legacy session cookie'
     ),
     description: translate(
-      'auto.components.settings.accounts.search.25591bf95b',
-      'Paste the full opencode.ai Cookie header, including __Host-console_session, for rate limit fetching.'
+      'settings.accounts.openCodeGo.cookieHelp',
+      'Legacy fallback for Black and legacy accounts. Paste the full Cookie header from opencode.ai browser DevTools, including __Host-console_session.'
     ),
     keywords: [
       ...translateSearchKeyword('auto.components.settings.accounts.search.8dcbef1856', 'opencode'),
@@ -155,8 +172,8 @@ export const getAccountsOpencodeSearchEntries = createLocalizedCatalog(() => [
       'OpenCode Go Workspace ID'
     ),
     description: translate(
-      'auto.components.settings.accounts.search.38d22ff8d6',
-      'Optional workspace ID override if the automatic lookup fails.'
+      'settings.accounts.openCodeGo.workspaceHelp',
+      'Only used by the cookie fallback when automatic workspace lookup fails. Find the workspace ID in the legacy console URL. API keys do not need it.'
     ),
     keywords: [
       ...translateSearchKeyword('auto.components.settings.accounts.search.8dcbef1856', 'opencode'),

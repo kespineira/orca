@@ -1,3 +1,8 @@
+import {
+  deferred,
+  okProvider,
+  resetRateLimitProviderMocks
+} from './rate-limit-service-test-harness'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProviderRateLimits } from '../../shared/rate-limit-types'
 import { RateLimitService } from './service'
@@ -5,11 +10,6 @@ import { fetchClaudeRateLimits } from './claude-fetcher'
 import { fetchCodexRateLimits } from './codex-fetcher'
 import { fetchMiniMaxRateLimits } from './minimax/minimax-fetcher'
 import { hasMiniMaxSessionCookie } from '../minimax/minimax-cookie-store'
-import {
-  deferred,
-  okProvider,
-  resetRateLimitProviderMocks
-} from './rate-limit-service-test-harness'
 
 vi.mock('./claude-fetcher', () => ({
   fetchClaudeRateLimits: vi.fn(),

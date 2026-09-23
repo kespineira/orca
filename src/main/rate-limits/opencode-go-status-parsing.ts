@@ -84,3 +84,39 @@ export function parseOpenCodeGoStatusPayload(text: string): OpenCodeGoUsageWindo
     monthly: meterToWindow(meters.month, MONTHLY_WINDOW_MINUTES)
   }
 }
+
+function usageToWindow(usage: unknown, windowMinutes: number): RateLimitWindow | null {
+  if (
+    !isRecord(usage) ||
+    (usage.status !== 'ok' && usage.status !== 'rate-limited') ||
+    typeof usage.percent !== 'number' ||
+    !Number.isFinite(usage.percent)
+  ) {
+    return null
+  }
+  return {
+    usedPercent: Math.min(100, Math.max(0, usage.percent)),
+    windowMinutes,
+    resetsAt: parseResetsAt(usage.resetsAt),
+    resetDescription: null
+  }
+}
+
+export function parseOpenCodeGoUsagePayload(text: string): OpenCodeGoUsageWindows | null {
+  if (!text || text.length > MAX_STATUS_PAYLOAD_CHARS) {
+    return null
+  }
+  let payload: unknown
+  try {
+    payload = JSON.parse(text)
+  } catch {
+    return null
+  }
+  if (!isRecord(payload) || !isRecord(payload.usage)) {
+    return null
+  }
+  const session = usageToWindow(payload.usage.rolling, SESSION_WINDOW_MINUTES)
+  const weekly = usageToWindow(payload.usage.weekly, WEEKLY_WINDOW_MINUTES)
+  const monthly = usageToWindow(payload.usage.monthly, MONTHLY_WINDOW_MINUTES)
+  return session && weekly ? { session, weekly, monthly } : null
+}

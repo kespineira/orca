@@ -56,6 +56,9 @@ export function updateSettings(
   options: { notifyListeners?: boolean; originWebContentsId?: number } = {}
 ): GlobalSettings {
   const sanitizedUpdates = stripRetiredGlobalSettings(updates)
+  if ('opencodeGoApiKey' in updates && !updates.opencodeGoApiKey) {
+    operations.removeRetainedBlob(PROTECTED_SECRET_SLOT.opencodeGoApiKey)
+  }
   if ('opencodeSessionCookie' in updates && !updates.opencodeSessionCookie) {
     operations.removeRetainedBlob(PROTECTED_SECRET_SLOT.opencodeSessionCookie)
   }

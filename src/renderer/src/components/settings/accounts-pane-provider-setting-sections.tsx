@@ -96,22 +96,66 @@ export function renderOpenCodeAccountsSection(model: AccountsPaneSectionModel): 
       </div>
 
       <SearchableSetting
+        title={translate('settings.accounts.openCodeGo.apiKeyTitle', 'OpenCode Go API key')}
+        description={translate(
+          'settings.accounts.openCodeGo.apiKeyHelp',
+          'Orca auto-detects the API key saved by /connect in OpenCode on this computer. Paste a key here to override it.'
+        )}
+        keywords={['opencode', 'api key', 'connect', 'rate limit', 'status bar']}
+        className="space-y-2"
+      >
+        <Label htmlFor="opencode-go-api-key">
+          {translate('settings.accounts.openCodeGo.apiKeyLabel', 'API key')}
+        </Label>
+        <div className="flex gap-2">
+          <DebouncedSettingsTextInput
+            id="opencode-go-api-key"
+            type="password"
+            value={settings.opencodeGoApiKey ?? ''}
+            onEdit={() => recordOpenCodeSettingEdit('apiKey')}
+            commit={(opencodeGoApiKey) => updateSettings({ opencodeGoApiKey })}
+            placeholder={translate(
+              'settings.accounts.openCodeGo.apiKeyPlaceholder',
+              'Leave blank to auto-detect'
+            )}
+            spellCheck={false}
+            className="flex-1 text-xs"
+          />
+          {settings.opencodeGoApiKey && (
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => {
+                recordFeatureInteraction('usage-tracking')
+                updateSettings({ opencodeGoApiKey: '' })
+              }}
+            >
+              {translate('auto.components.settings.AccountsPane.b398b834c9', 'Clear')}
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {translate(
+            'settings.accounts.openCodeGo.apiKeyHelp',
+            'Orca auto-detects the API key saved by /connect in OpenCode on this computer. Paste a key here to override it.'
+          )}
+        </p>
+      </SearchableSetting>
+
+      <SearchableSetting
         title={translate(
-          'auto.components.settings.AccountsPane.36223200ac',
-          'OpenCode Go Session Cookie'
+          'settings.accounts.openCodeGo.cookieTitle',
+          'OpenCode Go legacy session cookie'
         )}
         description={translate(
-          'auto.components.settings.AccountsPane.0335bd31d5',
-          'Paste the full opencode.ai Cookie header, including __Host-console_session, for rate limit fetching.'
+          'settings.accounts.openCodeGo.cookieHelp',
+          'Legacy fallback for Black and legacy accounts. Paste the full Cookie header from opencode.ai browser DevTools, including __Host-console_session.'
         )}
         keywords={['opencode', 'cookie', 'session', 'console', 'rate limit', 'status bar']}
         className="space-y-2"
       >
         <Label>
-          {translate(
-            'auto.components.settings.AccountsPane.67e3c33670',
-            'OpenCode Go session cookie'
-          )}
+          {translate('settings.accounts.openCodeGo.cookieLabel', 'Legacy session cookie')}
         </Label>
         <div className="flex gap-2">
           <DebouncedSettingsTextInput
@@ -142,18 +186,8 @@ export function renderOpenCodeAccountsSection(model: AccountsPaneSectionModel): 
         </div>
         <p className="text-xs text-muted-foreground">
           {translate(
-            'auto.components.settings.AccountsPane.62ab430f94',
-            "Paste the full Cookie header from your browser's DevTools → Network → any opencode.ai request, including __Host-console_session (e.g."
-          )}{' '}
-          <code className="text-xs">
-            {translate(
-              'auto.components.settings.AccountsPane.37b4b4a3f7',
-              'auth=…; __Host-console_session=…'
-            )}
-          </code>
-          {translate(
-            'auto.components.settings.AccountsPane.d5267cce63',
-            '). The auth cookie still covers workspace discovery; auth alone is not enough for usage. OpenCode Go auth is web-based and shared across Windows and WSL terminals.'
+            'settings.accounts.openCodeGo.cookieHelp',
+            'Legacy fallback for Black and legacy accounts. Paste the full Cookie header from opencode.ai browser DevTools, including __Host-console_session.'
           )}
         </p>
       </SearchableSetting>
@@ -164,8 +198,8 @@ export function renderOpenCodeAccountsSection(model: AccountsPaneSectionModel): 
           'OpenCode Go Workspace ID'
         )}
         description={translate(
-          'auto.components.settings.AccountsPane.d70a5287a4',
-          'Optional workspace ID override if the automatic lookup fails.'
+          'settings.accounts.openCodeGo.workspaceHelp',
+          'Only used by the cookie fallback when automatic workspace lookup fails. Find the workspace ID in the legacy console URL. API keys do not need it.'
         )}
         keywords={['opencode', 'workspace', 'id', 'wrk', 'rate limit', 'status bar']}
         className="space-y-2"
@@ -202,16 +236,9 @@ export function renderOpenCodeAccountsSection(model: AccountsPaneSectionModel): 
         </div>
         <p className="text-xs text-muted-foreground">
           {translate(
-            'auto.components.settings.AccountsPane.51c9104e13',
-            'Find this in the URL after logging into opencode.ai (e.g.'
-          )}{' '}
-          <code className="text-xs">
-            {translate(
-              'auto.components.settings.AccountsPane.ae3b21eb6c',
-              'opencode.ai/workspace/wrk_…/go'
-            )}
-          </code>
-          ).
+            'settings.accounts.openCodeGo.workspaceHelp',
+            'Only used by the cookie fallback when automatic workspace lookup fails. Find the workspace ID in the legacy console URL. API keys do not need it.'
+          )}
         </p>
       </SearchableSetting>
     </section>

@@ -15,6 +15,8 @@ import { describe, expect, it } from 'vitest'
 const AUDITED_NON_NET_FETCH_CALLS = new Map<string, number>([
   // Isolated cookie-jar session, proxied by createOpenCodeRequestSession before any request.
   ['main/rate-limits/opencode-go-usage-fetcher.ts', 2],
+  // Same isolated session and proxy path, with Bearer auth and no cookies.
+  ['main/rate-limits/opencode-go-api-usage-fetcher.ts', 1],
   // Isolated cookie-jar session that does NOT apply the proxy — a pre-existing gap, not a
   // regression: no proxy has ever reached this partition. Keep it listed so it stays visible.
   ['main/rate-limits/minimax/minimax-request-context.ts', 2],
