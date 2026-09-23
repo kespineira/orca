@@ -23,6 +23,7 @@ export abstract class RateLimitServiceFullCycleApplication extends RateLimitServ
       codexGeneration,
       opencodeConfigChanged,
       opencodeGeneration,
+      opencodeApiKeyConfigured,
       miniMaxConfigChanged,
       miniMaxGeneration,
       claudeFetchGated,
@@ -82,7 +83,7 @@ export abstract class RateLimitServiceFullCycleApplication extends RateLimitServ
     // Why: Antigravity can only borrow a *successful* Gemini read; a Gemini failure is not an Antigravity failure.
     const antigravity = deriveAntigravityRateLimits(gemini)
 
-    const opencodeGo =
+    const { apiKeyConfigured = opencodeApiKeyConfigured, ...opencodeGo } =
       opencodeGoResult.status === 'fulfilled'
         ? opencodeGoResult.value
         : ({
@@ -158,6 +159,7 @@ export abstract class RateLimitServiceFullCycleApplication extends RateLimitServ
     this.trackActiveFailureStreak('gemini', gemini)
     this.trackActiveFailureStreak('antigravity', antigravity)
     if (shouldApplyOpencode) {
+      this.opencodeGoApiKeyConfigured = apiKeyConfigured
       this.trackActiveFailureStreak('opencode-go', opencodeGo)
     }
     this.trackActiveFailureStreak('kimi', kimi)

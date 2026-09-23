@@ -5,6 +5,7 @@ import { Switch } from '../ui/switch'
 import { GeminiIcon, OpenCodeGoIcon } from '../status-bar/icons'
 import { SearchableSetting } from './SearchableSetting'
 import type { AccountsPaneSectionModel } from './accounts-pane-types'
+import { OpenCodeGoCredentials } from './accounts-pane-opencode-credentials'
 import { DebouncedSettingsTextInput } from './DebouncedSettingsTextInput'
 
 export function renderGeminiAccountsSection(model: AccountsPaneSectionModel): React.JSX.Element {
@@ -95,52 +96,7 @@ export function renderOpenCodeAccountsSection(model: AccountsPaneSectionModel): 
         </p>
       </div>
 
-      <SearchableSetting
-        title={translate('settings.accounts.openCodeGo.apiKeyTitle', 'OpenCode Go API key')}
-        description={translate(
-          'settings.accounts.openCodeGo.apiKeyHelp',
-          'Orca auto-detects the API key saved by /connect in OpenCode on this computer. Paste a key here to override it.'
-        )}
-        keywords={['opencode', 'api key', 'connect', 'rate limit', 'status bar']}
-        className="space-y-2"
-      >
-        <Label htmlFor="opencode-go-api-key">
-          {translate('settings.accounts.openCodeGo.apiKeyLabel', 'API key')}
-        </Label>
-        <div className="flex gap-2">
-          <DebouncedSettingsTextInput
-            id="opencode-go-api-key"
-            type="password"
-            value={settings.opencodeGoApiKey ?? ''}
-            onEdit={() => recordOpenCodeSettingEdit('apiKey')}
-            commit={(opencodeGoApiKey) => updateSettings({ opencodeGoApiKey })}
-            placeholder={translate(
-              'settings.accounts.openCodeGo.apiKeyPlaceholder',
-              'Leave blank to auto-detect'
-            )}
-            spellCheck={false}
-            className="flex-1 text-xs"
-          />
-          {settings.opencodeGoApiKey && (
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => {
-                recordFeatureInteraction('usage-tracking')
-                updateSettings({ opencodeGoApiKey: '' })
-              }}
-            >
-              {translate('auto.components.settings.AccountsPane.b398b834c9', 'Clear')}
-            </Button>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {translate(
-            'settings.accounts.openCodeGo.apiKeyHelp',
-            'Orca auto-detects the API key saved by /connect in OpenCode on this computer. Paste a key here to override it.'
-          )}
-        </p>
-      </SearchableSetting>
+      <OpenCodeGoCredentials onSaved={() => recordOpenCodeSettingEdit('apiKey')} />
 
       <SearchableSetting
         title={translate(

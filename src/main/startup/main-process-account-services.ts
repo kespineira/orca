@@ -14,6 +14,7 @@ import { getInitialCodexRateLimitTarget } from '../rate-limits/codex-rate-limit-
 import { getInitialClaudeRateLimitTarget } from '../rate-limits/claude-rate-limit-target'
 import { getKimiRuntimeTarget, resolveKimiHome } from '../kimi/kimi-runtime-home'
 import { readMiniMaxSessionCookie } from '../minimax/minimax-cookie-store'
+import { readOpenCodeGoApiKey } from '../opencode/opencode-go-api-key-store'
 import { readMiniMaxApiKey } from '../minimax/minimax-api-key-store'
 import { createAccountRuntimeTargetSettingsSync } from '../rate-limits/account-runtime-target-sync'
 import { normalizeCodexRuntimeSelection } from '../codex-accounts/runtime-selection'
@@ -92,6 +93,15 @@ export function initializeMainProcessAccountServices(): void {
     void syncAccountRuntimeTargets(updates, settings).catch((error) =>
       console.warn('[rate-limits] Failed to apply account runtime target:', error)
     )
+    if ('opencodeSessionCookie' in updates || 'opencodeWorkspaceId' in updates) {
+      state.rateLimits?.invalidateOpenCodeGoCredentialState()
+      void state.rateLimits?.refresh().catch((error: unknown) => {
+        console.warn(
+          '[rate-limits] Failed to refresh OpenCode Go usage after a settings change:',
+          error
+        )
+      })
+    }
     // Why: these three pick the MiniMax host and quota bucket, so a stale snapshot from the
     // previous endpoint would otherwise sit in the status bar until the next poll.
     if (
@@ -118,7 +128,7 @@ export function initializeMainProcessAccountServices(): void {
   state.rateLimits.setOpenCodeGoConfigResolver(() => {
     const settings = store.getSettings()
     return {
-      apiKey: settings.opencodeGoApiKey,
+      apiKey: readOpenCodeGoApiKey() ?? '',
       sessionCookie: settings.opencodeSessionCookie,
       workspaceIdOverride: settings.opencodeWorkspaceId
     }

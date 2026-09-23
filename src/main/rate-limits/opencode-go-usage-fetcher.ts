@@ -1,3 +1,4 @@
+import type { OpenCodeGoApiKey } from './opencode-go-api-key'
 import type { Session } from 'electron'
 import { randomUUID } from 'node:crypto'
 import type { NetworkProxySettings } from '../../shared/network-proxy'
@@ -75,25 +76,32 @@ function parseWorkspaceIds(text: string): string[] {
   return ids
 }
 
+export type OpenCodeGoUsageResult = ProviderRateLimits & { apiKeyConfigured?: boolean }
+
 export async function fetchOpenCodeGoRateLimits(
   cookie: string,
   workspaceIdOverride?: string,
   networkProxySettings?: NetworkProxySettings,
-  apiKey?: string
-): Promise<ProviderRateLimits> {
+  apiKey?: string,
+  apiKeySource?: OpenCodeGoApiKey['source']
+): Promise<OpenCodeGoUsageResult> {
   if (!apiKey) {
     return fetchOpenCodeGoCookieRateLimits(cookie, workspaceIdOverride, networkProxySettings)
   }
-  const result = await fetchOpenCodeGoApiUsage(apiKey, networkProxySettings)
+  const result = await fetchOpenCodeGoApiUsage(apiKey, networkProxySettings, apiKeySource)
+  const apiKeyConfigured = result.status !== 'unavailable'
   if (result.status === 'ok' || !cookie.trim()) {
-    return result
+    return { ...result, apiKeyConfigured }
   }
   const fallback = await fetchOpenCodeGoCookieRateLimits(
     cookie,
     workspaceIdOverride,
     networkProxySettings
   )
-  return fallback.status === 'ok' ? fallback : result
+  return {
+    ...(fallback.status === 'ok' || !apiKeyConfigured ? fallback : result),
+    apiKeyConfigured
+  }
 }
 
 async function fetchOpenCodeGoCookieRateLimits(

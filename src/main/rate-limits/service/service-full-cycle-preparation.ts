@@ -5,7 +5,7 @@ import { fetchGrokRateLimits } from '../grok-fetcher'
 import { readGrokAuthSession } from '../grok-auth'
 import { fetchMiniMaxRateLimits } from '../minimax/minimax-fetcher'
 import { resolveOpenCodeGoApiKey, getOpenCodeGoConfigHash } from '../opencode-go-api-key'
-import { fetchOpenCodeGoRateLimits } from '../opencode-go-usage-fetcher'
+import { fetchOpenCodeGoRateLimits, type OpenCodeGoUsageResult } from '../opencode-go-usage-fetcher'
 import { RateLimitServiceFetchPolicy } from './service-fetch-policy'
 import type {
   ClaudeRuntimeAuthPreparation,
@@ -28,6 +28,7 @@ export type FetchAllCyclePrepared = {
   codexGeneration: number
   opencodeConfigChanged: boolean
   opencodeGeneration: number
+  opencodeApiKeyConfigured: boolean
   miniMaxConfigChanged: boolean
   miniMaxGeneration: number
   claudeFetchGated: boolean
@@ -35,7 +36,7 @@ export type FetchAllCyclePrepared = {
     PromiseSettledResult<ProviderRateLimits>,
     PromiseSettledResult<ProviderRateLimits>,
     PromiseSettledResult<ProviderRateLimits>,
-    PromiseSettledResult<ProviderRateLimits>,
+    PromiseSettledResult<OpenCodeGoUsageResult>,
     PromiseSettledResult<ProviderRateLimits>,
     PromiseSettledResult<ProviderRateLimits>
   ]
@@ -74,9 +75,8 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
       ? null
       : this.getCodexProvenance(codexTarget, codexHomePath)
     const codexGeneration = this.codexFetchGeneration
-    const openCodeGoConfig = this.openCodeGoConfigResolver?.()
-    const apiKey = resolveOpenCodeGoApiKey(openCodeGoConfig?.apiKey)
-    this.opencodeGoApiKeyConfigured = apiKey !== null
+    const { config: openCodeGoConfig, error: openCodeGoError } = this.resolveOpenCodeGoConfig()
+    const apiKey = openCodeGoError ? null : resolveOpenCodeGoApiKey(openCodeGoConfig.apiKey)
     const cookie = openCodeGoConfig?.sessionCookie ?? ''
     const workspaceIdOverride = openCodeGoConfig?.workspaceIdOverride ?? ''
     const miniMaxConfigResult = this.resolveMiniMaxConfig()
@@ -97,6 +97,10 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
       this.lastOpencodeConfigHash = currentConfigHash
       this.opencodeFetchGeneration += 1
     }
+    this.opencodeGoApiKeyConfigured =
+      apiKey?.source === 'environment'
+        ? !opencodeConfigChanged && this.opencodeGoApiKeyConfigured
+        : apiKey !== null
     const opencodeGeneration = this.opencodeFetchGeneration
 
     const currentMiniMaxConfigHash = `${miniMaxCookie}|${miniMaxGroupId}|${miniMaxModels}|${miniMaxEndpoint}|${miniMaxApiKey}|${miniMaxConfigResult.error ?? ''}`
@@ -161,12 +165,23 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
               signal
             })),
         fetchGeminiRateLimits(geminiCliOAuthEnabled),
-        fetchOpenCodeGoRateLimits(
-          cookie,
-          workspaceIdOverride || undefined,
-          this.networkProxySettingsResolver?.(),
-          apiKey?.key
-        ),
+        openCodeGoError
+          ? Promise.resolve({
+              provider: 'opencode-go',
+              session: null,
+              weekly: null,
+              monthly: null,
+              updatedAt: Date.now(),
+              error: openCodeGoError,
+              status: 'error'
+            } satisfies ProviderRateLimits)
+          : fetchOpenCodeGoRateLimits(
+              cookie,
+              workspaceIdOverride || undefined,
+              this.networkProxySettingsResolver?.(),
+              apiKey?.key,
+              apiKey?.source
+            ),
         this.fetchKimiWithResolvedHome(),
         miniMaxConfigResult.error
           ? Promise.resolve(this.getMiniMaxCredentialError(miniMaxConfigResult.error))
@@ -195,6 +210,7 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
       codexGeneration,
       opencodeConfigChanged,
       opencodeGeneration,
+      opencodeApiKeyConfigured: apiKey !== null,
       miniMaxConfigChanged,
       miniMaxGeneration,
       claudeFetchGated,

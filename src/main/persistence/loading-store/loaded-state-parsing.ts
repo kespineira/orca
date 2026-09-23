@@ -100,12 +100,6 @@ export class LoadedStateParsingOperations {
         logPersistenceStartupMilestone('persistence-json-parse-done')
 
         // Why: secrets are stored encrypted via safeStorage; decrypt at the load boundary so the app sees plaintext.
-        if (parsed.settings?.opencodeGoApiKey) {
-          parsed.settings.opencodeGoApiKey = this.runtime.protectedSecrets.decrypt(
-            PROTECTED_SECRET_SLOT.opencodeGoApiKey,
-            parsed.settings.opencodeGoApiKey
-          )
-        }
         if (parsed.settings?.opencodeSessionCookie) {
           parsed.settings.opencodeSessionCookie = this.runtime.protectedSecrets.decrypt(
             PROTECTED_SECRET_SLOT.opencodeSessionCookie,

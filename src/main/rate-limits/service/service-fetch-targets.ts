@@ -6,6 +6,7 @@ import {
   type ClaudeRuntimeAuthPreparation,
   type CodexAccountSelectionTarget,
   type MiniMaxResolvedConfig,
+  type OpenCodeGoRateLimitConfig,
   type NormalizedCodexAccountSelectionTarget,
   type NormalizedClaudeAccountSelectionTarget,
   type ProviderRateLimits,
@@ -191,6 +192,21 @@ export abstract class RateLimitServiceFetchTargets extends RateLimitServiceResul
   protected shouldAllowClaudeUsagePanelSupplement(): boolean {
     // Why: keep this supplement off on Windows where hidden PTYs are still less reliable.
     return process.platform !== 'win32'
+  }
+
+  protected resolveOpenCodeGoConfig(): { config: OpenCodeGoRateLimitConfig; error: string | null } {
+    try {
+      return {
+        config: this.openCodeGoConfigResolver?.() ?? { sessionCookie: '', workspaceIdOverride: '' },
+        error: null
+      }
+    } catch {
+      // Why: an unreadable key must not abort other providers or expose credential errors.
+      return {
+        config: { sessionCookie: '', workspaceIdOverride: '' },
+        error: 'OpenCode Go API key could not be decrypted'
+      }
+    }
   }
 
   protected resolveMiniMaxConfig(): MiniMaxResolvedConfig {

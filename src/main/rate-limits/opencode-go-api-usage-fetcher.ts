@@ -1,3 +1,4 @@
+import type { OpenCodeGoApiKey } from './opencode-go-api-key'
 import type { ProviderRateLimits } from '../../shared/rate-limit-types'
 import type { NetworkProxySettings } from '../../shared/network-proxy'
 import { createOpenCodeRequestSession, OPENCODE_BASE_URL } from './opencode-go-request-session'
@@ -17,7 +18,8 @@ function usageError(error: string): ProviderRateLimits {
 
 export async function fetchOpenCodeGoApiUsage(
   apiKey: string,
-  networkProxySettings?: NetworkProxySettings
+  networkProxySettings?: NetworkProxySettings,
+  source?: OpenCodeGoApiKey['source']
 ): Promise<ProviderRateLimits> {
   try {
     const requestSession = await createOpenCodeRequestSession([], networkProxySettings)
@@ -34,7 +36,9 @@ export async function fetchOpenCodeGoApiUsage(
       )
     }
     if (response.status === 403) {
-      return usageError('OpenCode Go subscription required.')
+      const result = usageError('OpenCode Go subscription required.')
+      // Why: OPENCODE_API_KEY is also used by Zen-only accounts.
+      return source === 'environment' ? { ...result, status: 'unavailable' } : result
     }
     if (!response.ok) {
       return usageError(`Usage fetch failed (${response.status})`)

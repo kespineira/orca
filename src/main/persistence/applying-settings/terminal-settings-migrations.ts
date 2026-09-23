@@ -74,6 +74,10 @@ export function stripRetiredGlobalSettings(
   void _legacyScrollbackBytes
   void _legacyGitHubAttribution
   void _legacyShowAgentsSidebar
+  // Why: an unknown credential field must never survive into renderer settings.
+  if ('opencodeGoApiKey' in rest) {
+    delete rest.opencodeGoApiKey
+  }
   return rest
 }
 

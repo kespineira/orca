@@ -54,6 +54,37 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs())
 
 describe('OpenCode Go API usage', () => {
+  it.each(['environment', 'setting', 'auth-file'] as const)(
+    'treats a 403 from %s according to its Go-specific configuration',
+    async (source) => {
+      mocks.fetch.mockResolvedValue(response({ error: { name: 'EntitlementError' } }, 403))
+      const result = await fetchOpenCodeGoRateLimits('', undefined, undefined, fakeKey, source)
+      expect(result.status).toBe(source === 'environment' ? 'unavailable' : 'error')
+      expect(result.apiKeyConfigured).toBe(source !== 'environment')
+      expect(result.session).toBeNull()
+    }
+  )
+
+  it.each([200, 401])(
+    'tries the cookie after an environment key gets 403, with cookie HTTP %i',
+    async (status) => {
+      mocks.fetch
+        .mockResolvedValueOnce(response({}, 403))
+        .mockResolvedValueOnce(response(cookieUsage, status))
+      const result = await fetchOpenCodeGoRateLimits(
+        'auth=fake-cookie',
+        'wrk_legacy',
+        undefined,
+        fakeKey,
+        'environment'
+      )
+      expect(mocks.fetch).toHaveBeenCalledTimes(2)
+      expect(mocks.fetch.mock.calls[1]?.[0]).toBe('https://opencode.ai/console/api/go/status')
+      expect(result.apiKeyConfigured).toBe(false)
+      expect(result.status).toBe(status === 200 ? 'ok' : 'error')
+    }
+  )
+
   it('uses bearer auth without cookies or workspace discovery and clamps all usage windows', async () => {
     mocks.fetch.mockResolvedValue(response(usage))
     const result = await fetchOpenCodeGoRateLimits(

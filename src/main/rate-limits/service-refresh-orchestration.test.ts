@@ -400,6 +400,7 @@ describe('RateLimitService', () => {
       'session=abc123',
       undefined,
       networkProxySettings,
+      undefined,
       undefined
     )
     expect(fetchGrokRateLimits).toHaveBeenCalledWith({

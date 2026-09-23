@@ -5,7 +5,7 @@
  * against (a mis-sliced segment, a re-encoded payload, a dropped sentinel) is invisible until
  * something reads the bytes back.
  */
-import { mkdtempSync, readFileSync, realpathSync } from 'node:fs'
+import { mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -71,6 +71,26 @@ function session(activeTabId: string): WorkspaceSessionState {
 }
 
 describe('persisted state survives a save/load round trip', () => {
+  it('drops unknown OpenCode Go key fields on load and update before publishing settings', () => {
+    const dataFile = join(
+      realpathSync(mkdtempSync(join(tmpdir(), 'orca-unknown-key-'))),
+      'state.json'
+    )
+    const first = openStore(dataFile)
+    first.updateSettings({ opencodeWorkspaceId: 'wrk_test' })
+    first.flush()
+    const persisted = JSON.parse(readFileSync(dataFile, 'utf8'))
+    persisted.settings.opencodeGoApiKey = { unexpected: 'fake-secret' }
+    writeFileSync(dataFile, JSON.stringify(persisted))
+    const loaded = openStore(dataFile)
+    expect(loaded.getSettings().opencodeWorkspaceId).toBe('wrk_test')
+    expect(loaded.getSettings()).not.toHaveProperty('opencodeGoApiKey')
+    const updates = { opencodeGoApiKey: 'fake-key', opencodeWorkspaceId: 'wrk_next' }
+    expect(loaded.updateSettings(updates)).not.toHaveProperty('opencodeGoApiKey')
+    loaded.flush()
+    expect(readFileSync(dataFile, 'utf8')).not.toContain('opencodeGoApiKey')
+  })
+
   it('reloads settings, secrets and both session partitions unchanged', () => {
     const dataFile = join(
       realpathSync(mkdtempSync(join(tmpdir(), 'orca-store-round-trip-'))),
@@ -78,7 +98,6 @@ describe('persisted state survives a save/load round trip', () => {
     )
     const written = openStore(dataFile)
     written.updateSettings({
-      opencodeGoApiKey: 'oc_sk_fake-key',
       opencodeSessionCookie: 'cookie-é-value',
       httpProxyUrl: 'http://proxy.example:8080/?a=b&c=$&'
     })
@@ -97,8 +116,6 @@ describe('persisted state survives a save/load round trip', () => {
     // The file is valid UTF-8 JSON and holds ciphertext, not the plaintext secrets.
     const bytes = readFileSync(dataFile)
     const onDisk = JSON.parse(bytes.toString('utf8'))
-    expect(bytes.toString('utf8')).not.toContain('oc_sk_fake-key')
-    expect(onDisk.settings.opencodeGoApiKey).toBeTruthy()
     expect(onDisk.settings.opencodeSessionCookie).not.toBe('cookie-é-value')
     expect(Buffer.from(onDisk.settings.opencodeSessionCookie, 'base64').toString('utf8')).toContain(
       'cookie-é-value'
@@ -106,7 +123,6 @@ describe('persisted state survives a save/load round trip', () => {
     expect(bytes.toString('utf8')).not.toContain('orca-secret-slot-')
 
     const reloaded = openStore(dataFile)
-    expect(reloaded.getSettings().opencodeGoApiKey).toBe(before.settings.opencodeGoApiKey)
     expect(reloaded.getSettings().opencodeSessionCookie).toBe(before.settings.opencodeSessionCookie)
     expect(reloaded.getSettings().httpProxyUrl).toBe(before.settings.httpProxyUrl)
     expect(reloaded.getUI().browserKagiSessionLink).toBe(before.ui.browserKagiSessionLink)

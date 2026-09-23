@@ -1,4 +1,5 @@
 import {
+  deferred,
   errorProvider,
   okProvider,
   resetRateLimitProviderMocks
@@ -7,6 +8,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ProviderRateLimits } from '../../shared/rate-limit-types'
 import { RateLimitService } from './service'
 import { fetchClaudeRateLimits } from './claude-fetcher'
 import { fetchCodexRateLimits } from './codex-fetcher'
@@ -78,6 +80,86 @@ function writeKey(key: string): void {
 }
 
 describe('OpenCode Go service credentials', () => {
+  it('isolates unreadable stored keys without leaking decryption errors', async () => {
+    const service = new RateLimitService()
+    service.setOpenCodeGoConfigResolver(() => {
+      throw new Error('fake-private-key')
+    })
+    await service.refresh()
+    expect(service.getState().opencodeGo?.status).toBe('error')
+    expect(service.getState().claude?.status).toBe('ok')
+    expect(fetchOpenCodeGoRateLimits).not.toHaveBeenCalled()
+    expect(JSON.stringify(service.getState())).not.toContain('fake-private-key')
+    service.stop()
+  })
+
+  it('keeps a rejected environment key unconfigured during subsequent polls', async () => {
+    vi.stubEnv('OPENCODE_API_KEY', 'fake-zen-key')
+    const service = new RateLimitService()
+    vi.mocked(fetchOpenCodeGoRateLimits).mockResolvedValue({
+      ...errorProvider('opencode-go', 'OpenCode Go subscription required.'),
+      status: 'unavailable',
+      apiKeyConfigured: false
+    })
+    await service.refresh()
+    expect(service.getState().opencodeGoApiKeyConfigured).toBe(false)
+    expect(service.getState().opencodeGo?.status).toBe('unavailable')
+    expect(service.getState().opencodeGo).not.toHaveProperty('apiKeyConfigured')
+    const pending = deferred<ProviderRateLimits>()
+    vi.mocked(fetchOpenCodeGoRateLimits).mockReturnValueOnce(pending.promise)
+    const polling = service.refresh()
+    await Promise.resolve()
+    expect(service.getState().opencodeGoApiKeyConfigured).toBe(false)
+    pending.resolve({
+      ...errorProvider('opencode-go', 'OpenCode Go subscription required.'),
+      status: 'unavailable'
+    })
+    await polling
+    service.stop()
+  })
+
+  it.each(['key', 'cookie', 'workspace'])(
+    'discards an in-flight result after a %s change',
+    async (credential) => {
+      const service = new RateLimitService()
+      const config = {
+        apiKey: 'fake-first',
+        sessionCookie: 'auth=fake-cookie',
+        workspaceIdOverride: 'wrk_first'
+      }
+      service.setOpenCodeGoConfigResolver(() => config)
+      const first = deferred<ProviderRateLimits>()
+      const second = deferred<ProviderRateLimits>()
+      vi.mocked(fetchOpenCodeGoRateLimits)
+        .mockReturnValueOnce(first.promise)
+        .mockReturnValueOnce(second.promise)
+      const firstRefresh = service.refresh()
+      await vi.waitFor(() => expect(fetchOpenCodeGoRateLimits).toHaveBeenCalledTimes(1))
+      if (credential === 'key') {
+        config.apiKey = ''
+      }
+      if (credential === 'cookie') {
+        config.sessionCookie = ''
+      }
+      if (credential === 'workspace') {
+        config.workspaceIdOverride = 'wrk_second'
+      }
+      service.invalidateOpenCodeGoCredentialState()
+      expect(service.getState().opencodeGo?.session).toBeNull()
+      expect(service.getState().opencodeGo?.status).toBe('fetching')
+      const queuedRefresh = service.refresh()
+      first.resolve(okProvider('opencode-go', 50))
+      await vi.waitFor(() => expect(fetchOpenCodeGoRateLimits).toHaveBeenCalledTimes(2))
+      expect(service.getState().opencodeGo?.session).toBeNull()
+      expect(service.getState().opencodeGo?.status).toBe('fetching')
+      second.resolve(okProvider('opencode-go', 10))
+      await firstRefresh
+      await queuedRefresh
+      expect(service.getState().opencodeGo?.session?.usedPercent).toBe(10)
+      service.stop()
+    }
+  )
+
   it.each(['setting', 'environment', 'auth-file'] as const)(
     'publishes configured status and discards stale data after a %s key change',
     async (source) => {
@@ -108,7 +190,8 @@ describe('OpenCode Go service credentials', () => {
         '',
         undefined,
         undefined,
-        'fake-first'
+        'fake-first',
+        source
       )
       expect(JSON.stringify(service.getState())).not.toContain('fake-first')
 
@@ -121,7 +204,8 @@ describe('OpenCode Go service credentials', () => {
         '',
         undefined,
         undefined,
-        'fake-second'
+        'fake-second',
+        source
       )
       expect(service.getState().opencodeGo?.session).toBeNull()
       expect(service.getState().opencodeGo?.status).toBe('error')

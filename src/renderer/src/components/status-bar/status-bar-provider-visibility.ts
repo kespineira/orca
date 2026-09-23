@@ -6,7 +6,6 @@ export type UsageProviderSettings = Pick<
   | 'codexManagedAccounts'
   | 'claudeManagedAccounts'
   | 'opencodeSessionCookie'
-  | 'opencodeGoApiKey'
   | 'geminiCliOAuthEnabled'
 > & {
   // Why: Antigravity has no separate persisted usage credential in Orca. The
@@ -103,7 +102,7 @@ export function hasUsageProviderSettingsForProvider(
   }
   if (providerId === 'opencode-go') {
     return (
-      Boolean(settings.opencodeSessionCookie?.trim() || settings.opencodeGoApiKey?.trim()) ||
+      Boolean(settings.opencodeSessionCookie?.trim()) ||
       settings.opencodeGoApiKeyConfigured === true
     )
   }

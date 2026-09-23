@@ -81,21 +81,38 @@ function usageSettings(overrides: Partial<UsageProviderSettings> = {}): UsagePro
 }
 
 describe('hasUsageProviderSettings', () => {
-  it.each([
-    { opencodeGoApiKey: 'fake-override' },
-    { opencodeGoApiKeyConfigured: true },
-    { opencodeSessionCookie: 'auth=fake-cookie' }
-  ])('keeps OpenCode visible for any credential source %j', (settings) => {
-    const configured = usageSettings(settings)
-    expect(hasUsageProviderSettings(configured)).toBe(true)
-    expect(hasUsageProviderSettingsForProvider('opencode-go', configured)).toBe(true)
-    expect(getVisibleUsageProvider('opencode-go', null, configured)?.status).toBe('fetching')
-  })
+  it.each(['unavailable', 'fetching'] as const)(
+    'hides a Zen-only environment key while %s',
+    (status) => {
+      const settings = usageSettings({ opencodeGoApiKeyConfigured: false })
+      expect(hasUsageProviderSettingsForProvider('opencode-go', settings)).toBe(false)
+      expect(
+        getVisibleUsageProvider(
+          'opencode-go',
+          provider(status, { provider: 'opencode-go' }),
+          settings
+        )
+      ).toBeNull()
+    }
+  )
+
+  it.each([{ opencodeGoApiKeyConfigured: true }, { opencodeSessionCookie: 'auth=fake-cookie' }])(
+    'keeps OpenCode visible for any credential source %j',
+    (settings) => {
+      const configured = usageSettings(settings)
+      expect(hasUsageProviderSettings(configured)).toBe(true)
+      expect(hasUsageProviderSettingsForProvider('opencode-go', configured)).toBe(true)
+      expect(getVisibleUsageProvider('opencode-go', null, configured)?.status).toBe('fetching')
+    }
+  )
 
   it('handles absent configured flags from older main processes', () => {
     expect(hasUsageProviderSettingsForProvider('opencode-go', usageSettings())).toBe(false)
     expect(
-      hasUsageProviderSettingsForProvider('opencode-go', usageSettings({ opencodeGoApiKey: ' ' }))
+      hasUsageProviderSettingsForProvider(
+        'opencode-go',
+        usageSettings({ opencodeGoApiKeyConfigured: false })
+      )
     ).toBe(false)
   })
 
