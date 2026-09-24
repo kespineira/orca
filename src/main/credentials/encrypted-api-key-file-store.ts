@@ -2,7 +2,12 @@ import { safeStorage } from 'electron'
 import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { hardenExistingSecureFile, writeSecureFile } from '../../shared/secure-file'
+import {
+  hardenExistingSecureFile,
+  isUnreadableError,
+  writeSecureFile
+} from '../../shared/secure-file'
+import { ApiKeyFileUnreadableError } from './api-key-file-unreadable-error'
 
 type EncryptedApiKeyFileStore = {
   has: () => boolean
@@ -99,7 +104,8 @@ export function createEncryptedApiKeyFileStore({
     if (safeStorage.isEncryptionAvailable()) {
       writeSecureFile(
         getApiKeyPath(),
-        encodeApiKeyEnvelope('encrypted', safeStorage.encryptString(trimmed))
+        encodeApiKeyEnvelope('encrypted', safeStorage.encryptString(trimmed)),
+        { durable: true }
       )
       cachedApiKey = trimmed
       return
@@ -109,7 +115,8 @@ export function createEncryptedApiKeyFileStore({
     )
     writeSecureFile(
       getApiKeyPath(),
-      encodeApiKeyEnvelope('plaintext', Buffer.from(trimmed, 'utf8'))
+      encodeApiKeyEnvelope('plaintext', Buffer.from(trimmed, 'utf8')),
+      { durable: true }
     )
     cachedApiKey = trimmed
   }
@@ -131,12 +138,17 @@ export function createEncryptedApiKeyFileStore({
         error
       )
     }
+    let raw: Buffer | null = null
     try {
-      const raw = readFileSync(keyPath)
+      raw = readFileSync(keyPath)
       const envelope = decodeApiKeyEnvelope(raw)
       cachedApiKey = readEnvelope(envelope)
       return cachedApiKey
     } catch (error) {
+      if (raw === null && isUnreadableError(error)) {
+        console.warn(`[${logScope}] failed to read API key file`, error)
+        throw new ApiKeyFileUnreadableError(`${providerLabel} API key file could not be read`)
+      }
       console.error(`[${logScope}] failed to decode/decrypt API key`, error)
       throw new Error(`${providerLabel} API key could not be decrypted`)
     }

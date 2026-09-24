@@ -4,6 +4,7 @@ import { RateLimitService } from './service'
 import { fetchClaudeRateLimits } from './claude-fetcher'
 import { fetchCodexRateLimits } from './codex-fetcher'
 import { fetchOpenCodeGoUsage } from './opencode-go-usage-source-selection'
+import { ApiKeyFileUnreadableError } from '../credentials/api-key-file-unreadable-error'
 import {
   deferred,
   flushMicrotasks,
@@ -100,6 +101,26 @@ describe('OpenCode Go credential state', () => {
     expect(state.opencodeGo?.status).toBe('error')
     expect(state.opencodeGo?.error).toBe(DECRYPT_ERROR)
     // Why: the bar must stay visible to surface how to fix the saved key.
+    expect(state.opencodeGoApiKeyConfigured).toBe(true)
+  })
+
+  it('skips a transiently unreadable saved key without blaming it, keeping the bar visible', async () => {
+    const service = serviceWithCookie(() => {
+      throw new ApiKeyFileUnreadableError('OpenCode Go API key file could not be read')
+    })
+    vi.mocked(fetchOpenCodeGoUsage).mockImplementationOnce(async (input) => {
+      input.onApiKeyResolved?.({ status: 'missing' })
+      return unavailableProvider('opencode-go', 'No OpenCode Go API key or session cookie')
+    })
+
+    await service.refresh()
+
+    expect(fetchOpenCodeGoUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ settingsApiKey: '', cookie: 'auth=fake-cookie' })
+    )
+    const state = service.getState()
+    expect(state.opencodeGo?.status).toBe('unavailable')
+    expect(state.opencodeGo?.error).not.toBe(DECRYPT_ERROR)
     expect(state.opencodeGoApiKeyConfigured).toBe(true)
   })
 

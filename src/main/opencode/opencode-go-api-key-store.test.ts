@@ -1,14 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import type * as NodeFs from 'node:fs'
 import type * as NodeOs from 'node:os'
 import { join } from 'node:path'
 
-const home = vi.hoisted(() => ({ directory: '' }))
+const home = vi.hoisted(() => {
+  const state: { directory: string; readError: Error | null } = { directory: '', readError: null }
+  return state
+})
 vi.mock('node:os', async (importOriginal) => ({
   ...(await importOriginal<typeof NodeOs>()),
   homedir: () => home.directory
 }))
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof NodeFs>()
+  return {
+    ...actual,
+    readFileSync: (...args: Parameters<typeof actual.readFileSync>) => {
+      if (home.readError) {
+        throw home.readError
+      }
+      return actual.readFileSync(...args)
+    }
+  }
+})
 vi.mock('electron', () => ({
   safeStorage: {
     isEncryptionAvailable: () => true,
@@ -18,6 +34,7 @@ vi.mock('electron', () => ({
 }))
 
 beforeEach(() => {
+  home.readError = null
   home.directory = mkdtempSync(join(tmpdir(), 'orca-go-key-store-'))
   vi.resetModules()
 })
@@ -63,5 +80,20 @@ describe('OpenCode Go main-owned API key file', () => {
     expect(() => restarted.readOpenCodeGoApiKey()).toThrow(
       'OpenCode Go API key could not be decrypted'
     )
+  })
+
+  it('throws a distinct unreadable error for a transient read failure', async () => {
+    const store = await import('./opencode-go-api-key-store')
+    store.saveOpenCodeGoApiKey('fake-key')
+    vi.resetModules()
+    const restarted = await import('./opencode-go-api-key-store')
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    home.readError = Object.assign(new Error('resource busy'), { code: 'EBUSY' })
+
+    expect(() => restarted.readOpenCodeGoApiKey()).toThrow(
+      'OpenCode Go API key file could not be read'
+    )
+    home.readError = null
+    expect(restarted.readOpenCodeGoApiKey()).toBe('fake-key')
   })
 })

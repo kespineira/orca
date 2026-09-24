@@ -131,6 +131,7 @@ export function initializeMainProcessAccountServices(): void {
   })
   store.migrateLegacyOpenCodeGoApiKey({
     has: hasOpenCodeGoApiKey,
+    read: readOpenCodeGoApiKey,
     save: saveOpenCodeGoApiKey
   })
   state.rateLimits.setOpenCodeGoConfigResolver(() => {

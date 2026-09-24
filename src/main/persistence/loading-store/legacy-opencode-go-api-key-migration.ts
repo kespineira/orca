@@ -10,6 +10,8 @@ type LegacyOpenCodeGoApiKeySecrets = Pick<
 
 export type OpenCodeGoApiKeyTarget = {
   has: () => boolean
+  /** Throws when the saved key cannot be read or decrypted by this build. */
+  read: () => string | null
   save: (key: string) => void
 }
 
@@ -28,7 +30,7 @@ function isLegacyPlaintextOpenCodeGoApiKey(value: string): boolean {
  */
 export function retainLegacyOpenCodeGoApiKey(
   settings: unknown,
-  secrets: Pick<LegacyOpenCodeGoApiKeySecrets, 'retainSealed'>
+  secrets: Pick<ProtectedSecretPersistence, 'encrypt' | 'retainSealed'>
 ): void {
   if (!isRecord(settings) || !('opencodeGoApiKey' in settings)) {
     return
@@ -36,9 +38,19 @@ export function retainLegacyOpenCodeGoApiKey(
   const sealed = settings.opencodeGoApiKey
   // Why: in-memory settings reach the renderer and remote settings.get; the key must not ride along.
   delete settings.opencodeGoApiKey
-  if (typeof sealed === 'string' && sealed) {
-    secrets.retainSealed(LEGACY_OPENCODE_GO_API_KEY_SLOT, sealed)
+  if (typeof sealed !== 'string' || !sealed) {
+    return
   }
+  if (!isLegacyPlaintextOpenCodeGoApiKey(sealed)) {
+    secrets.retainSealed(LEGACY_OPENCODE_GO_API_KEY_SLOT, sealed)
+    return
+  }
+  // Why: orcad-only profiles never migrate, so seal it now; without encryption #22551 kept it plaintext too.
+  const encrypted = secrets.encrypt(LEGACY_OPENCODE_GO_API_KEY_SLOT, sealed)
+  secrets.retainSealed(
+    LEGACY_OPENCODE_GO_API_KEY_SLOT,
+    encrypted.degraded ? sealed : encrypted.blob
+  )
 }
 
 /**
@@ -54,7 +66,9 @@ export function migrateLegacyOpenCodeGoApiKey(
     return false
   }
   try {
-    if (!target.has()) {
+    // Why: a file another app identity sealed is unreadable here; read throws and keeps the legacy key.
+    const existing = target.has() ? target.read() : null
+    if (existing === null) {
       const decrypted = secrets.decryptWithStatus(
         LEGACY_OPENCODE_GO_API_KEY_SLOT,
         sealed,

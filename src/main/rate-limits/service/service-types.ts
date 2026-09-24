@@ -51,6 +51,8 @@ export type OpenCodeGoResolvedConfig = OpenCodeGoRateLimitConfig & {
   apiKey: string
   /** Set when the saved override exists but cannot be decrypted. */
   apiKeyError: string | null
+  /** Set when the saved override exists but a transient read failure skipped it this cycle. */
+  apiKeyReadSkipped: boolean
 }
 
 export type MiniMaxRateLimitConfig = {

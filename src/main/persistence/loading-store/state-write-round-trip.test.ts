@@ -103,6 +103,7 @@ describe('persisted state survives a save/load round trip', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     loaded.migrateLegacyOpenCodeGoApiKey({
       has: () => false,
+      read: () => null,
       save: () => {
         throw new Error('disk full')
       }
@@ -119,10 +120,12 @@ describe('persisted state survives a save/load round trip', () => {
     const saved: string[] = []
     loaded.migrateLegacyOpenCodeGoApiKey({
       has: () => saved.length > 0,
+      read: () => saved[0] ?? null,
       save: (key) => saved.push(key)
     })
     loaded.migrateLegacyOpenCodeGoApiKey({
       has: () => saved.length > 0,
+      read: () => saved[0] ?? null,
       save: (key) => saved.push(key)
     })
     expect(saved).toEqual(['fake-legacy-key'])

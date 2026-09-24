@@ -79,6 +79,7 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
     const workspaceIdOverride = openCodeGoConfig.workspaceIdOverride
     const openCodeGoApiKey = openCodeGoConfig.apiKey
     const openCodeGoApiKeyError = openCodeGoConfig.apiKeyError
+    const openCodeGoApiKeyReadSkipped = openCodeGoConfig.apiKeyReadSkipped
     const miniMaxConfigResult = this.resolveMiniMaxConfig()
     const miniMaxCookie = miniMaxConfigResult.config.sessionCookie
     const miniMaxGroupId = miniMaxConfigResult.config.groupId
@@ -174,9 +175,11 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
             if (opencodeGeneration !== this.opencodeFetchGeneration) {
               return
             }
-            // An undecryptable saved key still counts, so the bar stays up to show how to fix it.
+            // An undecryptable or briefly unreadable saved key still counts, so the bar stays up.
             this.openCodeGoApiKeyConfigured =
-              resolution.status === 'found' || openCodeGoApiKeyError !== null
+              resolution.status === 'found' ||
+              openCodeGoApiKeyError !== null ||
+              openCodeGoApiKeyReadSkipped
           },
           cookie,
           workspaceIdOverride: workspaceIdOverride || undefined,
