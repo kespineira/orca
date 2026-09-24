@@ -44,8 +44,13 @@ export type ClaudeAuthPreparationResolver = (
 export type OpenCodeGoRateLimitConfig = {
   sessionCookie: string
   workspaceIdOverride: string
-  /** Explicit Orca override; empty means fall back to env and OpenCode's own store. */
+}
+
+export type OpenCodeGoResolvedConfig = OpenCodeGoRateLimitConfig & {
+  /** Explicit Orca override; empty means fall back to OpenCode's own store and env. */
   apiKey: string
+  /** Set when the saved override exists but cannot be decrypted. */
+  apiKeyError: string | null
 }
 
 export type MiniMaxRateLimitConfig = {

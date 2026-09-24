@@ -74,10 +74,11 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
       ? null
       : this.getCodexProvenance(codexTarget, codexHomePath)
     const codexGeneration = this.codexFetchGeneration
-    const openCodeGoConfig = this.openCodeGoConfigResolver?.()
-    const cookie = openCodeGoConfig?.sessionCookie ?? ''
-    const workspaceIdOverride = openCodeGoConfig?.workspaceIdOverride ?? ''
-    const openCodeGoApiKey = openCodeGoConfig?.apiKey ?? ''
+    const openCodeGoConfig = this.resolveOpenCodeGoConfig()
+    const cookie = openCodeGoConfig.sessionCookie
+    const workspaceIdOverride = openCodeGoConfig.workspaceIdOverride
+    const openCodeGoApiKey = openCodeGoConfig.apiKey
+    const openCodeGoApiKeyError = openCodeGoConfig.apiKeyError
     const miniMaxConfigResult = this.resolveMiniMaxConfig()
     const miniMaxCookie = miniMaxConfigResult.config.sessionCookie
     const miniMaxGroupId = miniMaxConfigResult.config.groupId
@@ -94,7 +95,7 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
     const apiKeyFingerprint = openCodeGoApiKey
       ? createHash('sha256').update(openCodeGoApiKey).digest('hex')
       : ''
-    const currentConfigHash = `${cookie}|${workspaceIdOverride}|${apiKeyFingerprint}`
+    const currentConfigHash = `${cookie}|${workspaceIdOverride}|${apiKeyFingerprint}|${openCodeGoApiKeyError ?? ''}`
     const opencodeConfigChanged = currentConfigHash !== this.lastOpencodeConfigHash
     if (opencodeConfigChanged) {
       this.lastOpencodeConfigHash = currentConfigHash
@@ -169,7 +170,13 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
           // Why here: the key can also come from the environment or OpenCode's
           // own store, so presence is only known once the fetch resolves it.
           onApiKeyResolved: (resolution) => {
-            this.openCodeGoApiKeyConfigured = resolution.status === 'found'
+            // Why: a credential change mid-fetch bumps the generation; its stale presence must not win.
+            if (opencodeGeneration !== this.opencodeFetchGeneration) {
+              return
+            }
+            // An undecryptable saved key still counts, so the bar stays up to show how to fix it.
+            this.openCodeGoApiKeyConfigured =
+              resolution.status === 'found' || openCodeGoApiKeyError !== null
           },
           cookie,
           workspaceIdOverride: workspaceIdOverride || undefined,
@@ -190,6 +197,18 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
 
     if (signal.aborted) {
       return null
+    }
+    // Why: the decrypt error only replaces a result with no usage and no diagnosis of its own; a real cookie error stays visible.
+    if (
+      openCodeGoApiKeyError &&
+      opencodeGoResult.status === 'fulfilled' &&
+      opencodeGoResult.value.status === 'unavailable'
+    ) {
+      opencodeGoResult.value = {
+        ...opencodeGoResult.value,
+        error: openCodeGoApiKeyError,
+        status: 'error'
+      }
     }
     return {
       claudeTarget,

@@ -6,6 +6,7 @@ import {
   type ClaudeRuntimeAuthPreparation,
   type CodexAccountSelectionTarget,
   type MiniMaxResolvedConfig,
+  type OpenCodeGoResolvedConfig,
   type NormalizedCodexAccountSelectionTarget,
   type NormalizedClaudeAccountSelectionTarget,
   type ProviderRateLimits,
@@ -191,6 +192,24 @@ export abstract class RateLimitServiceFetchTargets extends RateLimitServiceResul
   protected shouldAllowClaudeUsagePanelSupplement(): boolean {
     // Why: keep this supplement off on Windows where hidden PTYs are still less reliable.
     return process.platform !== 'win32'
+  }
+
+  protected resolveOpenCodeGoConfig(): OpenCodeGoResolvedConfig {
+    const config = this.openCodeGoConfigResolver?.() ?? {
+      sessionCookie: '',
+      workspaceIdOverride: ''
+    }
+    try {
+      return { ...config, apiKey: this.openCodeGoApiKeyResolver?.() ?? '', apiKeyError: null }
+    } catch {
+      // Why: an unreadable saved key is treated as absent so the cookie and OpenCode's own key still run.
+      return {
+        ...config,
+        apiKey: '',
+        apiKeyError:
+          'OpenCode Go API key could not be decrypted. Re-enter or clear the key in Settings.'
+      }
+    }
   }
 
   protected resolveMiniMaxConfig(): MiniMaxResolvedConfig {
